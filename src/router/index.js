@@ -5,8 +5,6 @@ import {
 import {
     useCookies
 } from '@vueuse/integrations/useCookies';
-// import Test from '~/views/test.vue'
-// import Test01 from '~/views/test01.vue'
 import NotFound from '~/views/404.vue'
 import Login from '~/views/login/login.vue'
 import Home from '~/views/home/home.vue'
