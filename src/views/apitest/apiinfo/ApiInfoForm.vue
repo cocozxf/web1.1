@@ -30,7 +30,7 @@
               :value="is_login.logintype" /></el-select>
         </el-form-item>
       </el-col>
-      <el-col :span="5" v-show="cookieShow" class="ml-10">
+      <el-col :span="5"  class="ml-10">
       <el-form-item label="cookie变量名">
         <el-input v-model="apiInfo.cookie_name" placeholder="输入变量名" clearable />
       </el-form-item>

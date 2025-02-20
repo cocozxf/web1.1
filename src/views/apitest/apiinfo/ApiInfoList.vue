@@ -174,13 +174,15 @@ const projectChange = (value: number) => { // 项目变动触发
     console.log(value);
     if (value) {
         getModuleList(value)
+        searchForm.module_id = ''
     } else {
         moduleList.value = [{
             id: null,
             module_name: '',
             module_desc: ''
         }]
-        searchForm.module_id = ""
+        searchForm.module_id = ''
+
     }
 
 

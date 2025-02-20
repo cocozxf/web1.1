@@ -99,7 +99,9 @@ const handleCurrentChange = (val: number) => {
 const showApiHistory = (index: number) => {
     // 注意： 这个地方的测试报告服务器地址，是需要根据后端服务器修改的，这里写死了，后面要改成配置文件
     var report_id = tableData.value[index]["history_detail"]
-    window.open("http://127.0.0.1:5001/ApiHistory/" + report_id + ".html", '_blank');
+    console.log("ssssss");
+    
+    window.open("http://192.168.119.129:5003/ApiHistory/" + report_id + ".html", '_blank');
 }
 </script>
 
