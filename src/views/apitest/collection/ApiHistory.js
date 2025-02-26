@@ -4,8 +4,8 @@ import axios from "~/axios"
 const module_name = "ApiHistory"
 
 // 标准 - 增删改查接口调用
-export function queryByPage(data) {
-    return axios.post(`/${module_name}/queryByPage`, data)
+export async function queryByPage(data) {
+    return await axios.post(`/${module_name}/queryByPage`, data)
 }
 
 export function queryById(id) {

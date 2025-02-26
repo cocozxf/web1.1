@@ -13,7 +13,7 @@
         <!-- END 搜索表单 -->
 
         <!-- 数据表格 -->
-        <el-table :data="tableData" style="width: 100%;" max-height="500">
+        <el-table :data="computedTable" style="width: 100%;" max-height="500">
             <!-- 数据列 -->
             <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
             <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
@@ -44,14 +44,14 @@
     </div>
 </template>
 <script lang="ts" setup>
-import { ref, reactive } from "vue";
+import { ref, reactive ,computed} from "vue";
 import { queryexcuteResult } from './ApiSuite' // 不同页面不同的接口
 import { useRouter } from "vue-router";
 const router = useRouter()
 const searchForm = reactive({ "suite_name": "" })
 // 表格列 - 不同页面不同的列
 const columnList = ref([
-    { prop: "id", label: '任务编号' },
+    { prop: "num", label: '序号' },
     { prop: "excute_suite_name", label: '任务名称' },
     { prop: "excute_status", label: '任务状态' },
     { prop: "pass_count", label: '成功数' },
@@ -67,6 +67,12 @@ const pageSize = ref(10)
 const total = ref(0)
 // 表格数据
 const tableData = ref([])
+const computedTable = computed(() => {
+    return tableData.value.map((item, index) => ({
+        ...item,
+        num: (currentPage.value - 1) * pageSize.value + index + 1 // 分页序号 
+    }))
+})
 
 // 加载页面数据
 const loadData = () => {

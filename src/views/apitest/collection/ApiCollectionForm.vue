@@ -1,16 +1,28 @@
 <template>
   <el-form ref="ruleFormRef" :model="apicollection" :rules="rules" label-width="120px" class="demo-ruleForm">
     <!-- 不同的页面，不同的表单字段 -->
-    <el-form-item label="所属项目" prop="project_id">
-      <el-select v-model="apicollection.project_id" placeholder="选择所属项目">
-        <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
-      </el-select>
+    <el-form-item label="项目模块信息" prop="project_id">
+      <el-col :span="5">
+        <el-form-item prop="project_id">
+          <el-select v-model="apicollection.project_id" placeholder="项目" @change="projectChange" clearable>
+            <el-option v-for="project in projectList" :key="project.id" :label="project.project_name"
+              :value="project.id" />
+          </el-select>
+        </el-form-item>
+      </el-col>
+      <el-col :span="5">
+        <el-form-item prop="module_id">
+          <el-select v-model="apicollection.module_id" placeholder="模块" @click="getModule" clearable>
+            <el-option v-for="module_info in moduleList" :key="module_info.id" :label="module_info.module_name"
+              :value="module_info.id" /></el-select>
+        </el-form-item>
+      </el-col>
     </el-form-item>
     <el-form-item label="用例名称" prop="collection_name">
-      <el-input v-model="apicollection.collection_name" />
+      <el-input v-model="apicollection.collection_name" clearable />
     </el-form-item>
     <el-form-item label="用例描述" prop="collection_desc">
-      <el-input v-model="apicollection.collection_desc" />
+      <el-input v-model="apicollection.collection_desc" clearable />
     </el-form-item>
     <el-form-item label="运行环境数据" prop="collection_env">
       <el-input v-model="apicollection.collection_env" :rows="2" type="textarea"
@@ -71,17 +83,20 @@
   <!-- 弹窗 - 弹窗加载接口列表 -->
   <el-dialog v-model="infoDialogFormVisible" title="添加接口">
     <el-form-item>
-      <el-row class="mb-4" type="flex" justify="end">
-        <el-select v-model="searchForm.project_id" placeholder="项目" @change="projectChange" clearable>
-          <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
+      <el-row class="mb-4" type="flex" justify="start">
+        <el-input v-model="searchForm.api_name" placeholder="根据接口名称筛选" clearable style="width: 40%" />
+        <el-select v-model="searchForm.project_id" placeholder="项目" @change="dailogprojectChange" clearable
+          style="width: 20%">
+          <el-option v-for="project in projectList" :key="project.id" :label="project.project_name"
+            :value="project.id" />
         </el-select>
-        <el-select v-model="searchForm.module_id" placeholder="模块" clearable>
+        <el-select v-model="searchForm.module_id" placeholder="模块" @click="getdailogModule" clearable style="width: 20%">
           <el-option v-for="module_info in moduleList" :key="module_info.id" :label="module_info.module_name"
             :value="module_info.id" /></el-select>
         <el-button type="primary" @click="loadApiInfos()">查询</el-button>
       </el-row>
-      <el-table :data="apiInfoList" style="width: 100%">
-        <el-table-column prop="id" label="接口编号" style="width: 5%" />
+      <el-table :data="computedTable" style="width: 100%">
+        <el-table-column prop="num" label="序号" style="width: 5%" />
         <el-table-column prop="api_name" label="接口名称" style="width: 30%" show-overflow-tooltip="true" />
         <el-table-column prop="request_url" label="接口url" style="width: 60%" show-overflow-tooltip="true" />
         <el-table-column fixed="right" label="操作" style="width: 5%">
@@ -102,7 +117,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { queryById, insertData, updateData } from "./ApiCollection.js"; // 不同页面不同的接口
 import type { FormInstance, FormRules } from "element-plus";
 import { useRouter } from "vue-router";
@@ -115,7 +130,8 @@ const ruleFormRef = ref<FormInstance>();
 // 表单数据 - 不同的页面，不同的表单字段
 const apicollection = reactive({
   id: 0,
-  project_id: null,
+  project_id: "",
+  module_id: "",
   collection_name: "",
   collection_desc: "",
   collection_env: "",
@@ -125,6 +141,7 @@ const apicollection = reactive({
 // 表单验证规则 - 不同的页面，不同的校验规则
 const rules = reactive<any>({
   project_id: [{ required: true, message: "必填项", trigger: "blur" }],
+  module_id: [{ required: true, message: "必填项", trigger: "blur" }],
   collection_name: [{ required: true, message: "必填项", trigger: "blur" }],
   collection_desc: [{ required: true, message: "必填项", trigger: "blur" }],
 });
@@ -171,6 +188,7 @@ const loadData = async (id: number) => {
   // 不同的页面，不同的表单字段 (注意这里的res.data.data.xxx，xxx是接口返回的字段，不同的接口，字段不同)
   apicollection.id = res.data.data.id;
   apicollection.project_id = res.data.data.project_id;
+  apicollection.module_id = res.data.data.module_id;
   apicollection.collection_name = res.data.data.collection_name;
   apicollection.collection_desc = res.data.data.collection_desc;
   apicollection.collection_env = res.data.data.collection_env;
@@ -199,10 +217,72 @@ function getProjectList() {
   });
 }
 getProjectList();
+onMounted(() => {
+  getModuleList()                                       
+})
+const getModule = () => {
+  getModuleList()
+}
+const getdailogModule = () => {
+  getdailogModuleList()
+}
+// 模块加载
+import { queryByPage as apiModuleQuery } from "../module/ApiModule.js"; // 不同页面不同的接口
+const moduleList = ref([{
+  id: "",
+  module_name: '',
+  module_desc: ''
+}]);
+function getModuleList() { // 根据项目加载模块
+  apiModuleQuery({
+    "project_id": apicollection.project_id,
+    "page": 1,
+    "pageSize": 999999
+  }).then((res) => {
+    moduleList.value = res.data.data;
+  });
+}
 
+function getdailogModuleList() { // 根据项目加载模块
+  apiModuleQuery({
+    "project_id": searchForm.project_id,
+    "page": 1,
+    "pageSize": 999999
+  }).then((res) => {
+    moduleList.value = res.data.data;
+  });
+}
+const dailogprojectChange = (value: number) => { // 项目变动触发
+  console.log(value)
+  if (value) {
+    searchForm.module_id = ''
+  } else {
+    moduleList.value = [{
+      id: '',
+      module_name: '',
+      module_desc: ''
+    }]
+    searchForm.module_id = ''
+
+  }
+}
+const projectChange = (value: number) => { // 项目变动触发
+  console.log(value)
+  if (value) {
+    apicollection.module_id = ''
+  } else {
+    moduleList.value = [{
+      id: '',
+      module_name: '',
+      module_desc: ''
+    }]
+    apicollection.module_id = ''
+
+  }
+}
 // 2. 加载接口关联信息 
 import { queryByPage, deleteData } from "./ApiCase.js"; // 不同页面不同的接口
-const apiCaseList = ref([] as any[]); // 关联的接口
+const apiCaseList = ref([] as any[]); // 用例关联的接口
 const currentApiPage = ref(1) // 页码
 const apiCasePageSize = ref(5) // 每页大小
 const apiCaseTotal = ref(0)
@@ -253,6 +333,7 @@ function handlerCaseParamDataChange() {
     if (res.data.code == 200) {
       apiCaseList.value[currentApiCaseIndex.value].run_order = caseRunOrder.value
       paramDialogFormVisible.value = false
+      loadApiCases()
     }
   })
 }
@@ -263,33 +344,14 @@ const editCaseParamData = (index: number) => {
 };
 
 // 4. 添加接口
-// 模块加载
-import { queryByPage as apiModuleQuery } from "../module/ApiModule.js"; // 不同页面不同的接口
-const moduleList = ref([{
-  id: 0,
-  module_name: '',
-  module_desc: ''
-}]);
-function getModuleList() { // 根据项目加载模块
-  apiModuleQuery({
-    "project_id": searchForm.project_id,
-    "page": 1,
-    "pageSize": 999999
-  }).then((res) => {
-    moduleList.value = res.data.data;
-  });
-}
-const projectChange = (value: number) => { // 项目变动触发
-  getModuleList()
-}
 // 接口信息加载
 import { queryByPage as queryApiInfoByPage } from "../apiinfo/ApiInfo.js"; // 不同页面不同的接口
-const apiInfoList = ref([] as any[]); // 关联的接口
+const apiInfoList = ref([] as any[]); // 接口列表
 const currentApiInfoPage = ref(1) // 页码
 const apiInfoPageSize = ref(5) // 每页大小
 const apiInfoTotal = ref(0)
 const infoDialogFormVisible = ref(false) // 是否展示弹窗
-const searchForm = reactive({ "project_id": '', "module_id": '' })// 搜索
+const searchForm = reactive({ "api_name": '', "project_id": '', "module_id": '' })// 搜索
 
 
 import { ElMessage, ElMessageBox } from 'element-plus' // 弹窗
@@ -305,7 +367,7 @@ function showApiInfosDialog() {
         if (action == 'confirm') {
           // 提交数据
           console.log(apicollection);
-
+          
           insertData(apicollection).then(
             (res: { data: { data: any, code: number; msg: string } }) => {
               if (res.data.code == 200) {
@@ -314,12 +376,14 @@ function showApiInfosDialog() {
               }
             }
           );
+          loadApiInfos()
         }
 
       },
     })
   } else {
     infoDialogFormVisible.value = true
+    loadApiInfos()
   }
 
 
@@ -336,6 +400,13 @@ function loadApiInfos() {
     apiInfoTotal.value = res.data.total
   })
 }
+
+const computedTable = computed(() => {
+  return apiInfoList.value.map((item, index) => ({
+    ...item,
+    num: (currentApiInfoPage.value - 1) * apiInfoPageSize.value + index + 1 // 分页序号 
+  }))
+})
 // 翻页
 const handleApiInfoCurrentChange = (val: number) => {
   console.log("页码变化:" + val)

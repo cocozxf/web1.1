@@ -5,11 +5,16 @@
             <el-input v-model="searchForm.collection_name" placeholder="根据用例名称筛选" />
         </el-form-item>
         <el-form-item label="项目">
-            <el-select v-model="searchForm.project_id" placeholder="项目" clearable>
+            <el-select v-model="searchForm.project_id" placeholder="项目" @change="projectChange" clearable>
                 <el-option v-for="project in projectList" :key="project.id" :label="project.project_name"
                     :value="project.id" />
             </el-select>
         </el-form-item>
+        <el-form-item label="模块">
+                <el-select v-model="searchForm.module_id" placeholder="请先关联项目" clearable>
+                    <el-option v-for="module_info in moduleList" :key="module_info.id" :label="module_info.module_name"
+                        :value="module_info.id" /></el-select>
+            </el-form-item>
         <!-- 这里可以根据需要添加其他搜索条件 -->
         <el-row class="mb-4" type="flex" justify="end">
             <el-button type="primary" @click="loadData()">查询</el-button>
@@ -19,7 +24,7 @@
     <!-- END 搜索表单 -->
 
     <!-- 数据表格 -->
-    <el-table :data="tableData" style="width: 100%;" max-height="500">
+    <el-table :data="computedTable" style="width: 100%;" max-height="500">
         <!-- 数据列 -->
         <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
         <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
@@ -57,10 +62,10 @@
     <!-- 弹窗 - 弹窗加载执行记录 -->
     <el-dialog v-model="apiHistoryDialogFormVisible" title="执行记录">
         <el-form-item>
-            <el-table :data="apiHistoryList" style="width: 100%">
-                <el-table-column prop="id" label="用例编号" style="width: 5%" />
-                <el-table-column prop="create_time" label="执行时间" style="width: 30%" show-overflow-tooltip="true" />
-                <el-table-column prop="history_desc" label="执行情况简述" style="width: 60%" show-overflow-tooltip="true" />
+            <el-table :data="computeddailogTable" style="width: 100%">
+                <el-table-column prop="num" label="序号" style="width: 5%" />
+                <el-table-column prop="create_time" label="执行时间" style="width: 0%" show-overflow-tooltip="true" />
+                <el-table-column prop="history_desc" label="执行情况简述" style="width: 20%" show-overflow-tooltip="true" />
                 <el-table-column fixed="right" label="操作" style="width: 5%">
                     <template #default="scope">
                         <el-button type="primary" size="small" @click.prevent="showApiHistory(scope.$index)">
@@ -72,14 +77,14 @@
         </el-form-item>
 
         <el-form-item>
-            <el-pagination :current-page="currentApiHistoryPage" :page-size="apiHistoryPageSize" :total="apiHistoryTotal"
-                @current-change="handleApiHistoryCurrentChange"></el-pagination>
+            <el-pagination :current-page="currentApiHistoryPage" :page-size="apiHistoryPageSize"
+                :total="apiHistoryTotal" @current-change="handleApiHistoryCurrentChange"></el-pagination>
         </el-form-item>
     </el-dialog>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive } from "vue"
+import { ref, reactive , computed} from "vue"
 import { queryByPage, deleteData, excuteTest } from './ApiCollection.js' // 不同页面不同的接口
 import { useRouter } from "vue-router";
 const router = useRouter()
@@ -91,18 +96,25 @@ const total = ref(0)
 
 // 搜索功能 - 筛选表单
 const searchStatus = ref(false) // 是否应用搜索表单
-const searchForm = reactive({ "collection_name": "", "project_id": "" })
+const searchForm = reactive({ "collection_name": "", "project_id": "" , "module_id": "" })
 
 // 表格列 - 不同页面不同的列
 const columnList = ref([
-    { prop: "id", label: '用例编号' },
+    { prop: "num", label: '序号' },
     { prop: "collection_name", label: '用例名称' },
+    { prop: "project_name", label: '关联项目' },
+    { prop: "module_name", label: '关联模块' }
     // 其他列
 ])
 
 // 表格数据
 const tableData = ref([])
-
+const computedTable = computed(() => {
+    return tableData.value.map((item, index) => ({
+        ...item,
+        num: (currentPage.value - 1) * pageSize.value + index + 1 // 分页序号 
+    }))
+})
 // 加载页面数据
 const loadData = () => {
     let searchData = searchForm
@@ -173,10 +185,44 @@ function getProjectList() {
     });
 }
 getProjectList();
+// 2. 模块添加
+import { queryByPage as apiModuleQuery } from "../module/ApiModule.js"; // 不同页面不同的接口
+const moduleList = ref([{
+    id: null,
+    module_name: '',
+    module_desc: ''
+}]);
+function getModuleList(value: number) { // 根据项目加载模块
+    apiModuleQuery({
+        // "project_id": searchForm.project_id,
+        "project_id": value,
+        "page": 1,
+        "pageSize": 999999
+    }).then((res) => {
+        moduleList.value = res.data.data;
+    });
+}
+const projectChange = (value: number) => { // 项目变动触发
+    console.log(value);
+    if (value) {
+        getModuleList(value)
+        searchForm.module_id = ''
+    } else {
+        moduleList.value = [{
+            id: null,
+            module_name: '',
+            module_desc: ''
+        }]
+        searchForm.module_id = ''
+
+    }                                                                                                           
+
+}
+
 
 // 执行记录加载
 import { queryByPage as queryApiHistoryByPage } from "./ApiHistory.js"; // 不同页面不同的接口
-const apiHistoryList = ref([] as any[]); // 关联的接口
+const apiHistoryList = ref([] as any[]); // 执行记录
 const currentApiHistoryPage = ref(1) // 页码
 const apiHistoryPageSize = ref(5) // 每页大小
 const apiHistoryTotal = ref(0)
@@ -190,7 +236,10 @@ const showApiHistorysDialog = (index: number) => {
     apiHistoryList.value = []
     currentCollectionId.value = tableData.value[index]["id"]
     loadApiHistorys()
+    console.log(apiHistoryList.value);
+    
 }
+
 
 // 根据分页参数 加载数据
 function loadApiHistorys() {
@@ -198,12 +247,28 @@ function loadApiHistorys() {
     searchData["collection_id"] = currentCollectionId.value
     searchData["page"] = currentApiHistoryPage.value
     searchData["pageSize"] = apiHistoryPageSize.value
-    queryApiHistoryByPage(searchData).then((res: { data: { data: never[]; total: number; msg: string } }) => {
-        console.log(res.data.data)
-        apiHistoryList.value = res.data.data
-        apiHistoryTotal.value = res.data.total
+    console.log(searchData);
+    
+    queryApiHistoryByPage(searchData).then((res) => {
+        console.log(res.data)
+        if(res.data.total){
+            apiHistoryList.value = res.data.data
+            apiHistoryTotal.value = res.data.total
+        }
+        else{
+            apiHistoryList.value = []
+            apiHistoryTotal.value = 0
+        }
+        
     })
 }
+
+const computeddailogTable = computed(() => {
+  return apiHistoryList.value.map((item, index) => ({
+    ...item,
+    num: (currentApiHistoryPage.value - 1) * apiHistoryPageSize.value + index + 1 // 分页序号 
+  }))
+})
 // 翻页
 const handleApiHistoryCurrentChange = (val: number) => {
     console.log("页码变化:" + val)

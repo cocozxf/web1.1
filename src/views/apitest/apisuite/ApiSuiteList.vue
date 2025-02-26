@@ -14,7 +14,7 @@
         <!-- END 搜索表单 -->
 
         <!-- 数据表格 -->
-        <el-table :data="tableData" style="width: 100%;" max-height="500">
+        <el-table :data="computedTable" style="width: 100%;" max-height="500">
             <!-- 数据列 -->
             <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
             <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
@@ -29,7 +29,7 @@
                     <el-button link type="primary" size="small" @click.prevent="onDelete(scope.$index)">
                         删除
                     </el-button>
-                    <el-button link type="primary" size="small" @click.prevent="onExecuteTest(scope.$index)">
+                    <el-button link type="primary" size="small" @click.prevent="pushexcutehistory(scope.$index)">
                         执行测试
                     </el-button>
                     <!-- <el-button link type="primary" size="small" @click.prevent="showApiHistorysDialog(scope.$index)">
@@ -43,22 +43,23 @@
         <!-- 分页 -->
         <div class="demo-pagination-block">
             <div class="demonstration"></div>
-            <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
-                layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
-                @current-change="handleCurrentChange" />
+            <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize"
+                :page-sizes="[10, 20, 30, 50]" layout="total, sizes, prev, pager, next, jumper" :total="total"
+                @size-change="handleSizeChange" @current-change="handleCurrentChange" />
         </div>
         <!-- END 分页 -->
     </div>
 </template>
 <script lang="ts" setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, computed } from "vue";
 import { queryByPage, deleteData, excuteTest } from './ApiSuite' // 不同页面不同的接口
 import { useRouter } from "vue-router";
+import { ElMessageBox } from 'element-plus';
 const router = useRouter()
 const searchForm = reactive({ "suite_name": "" })
 // 表格列 - 不同页面不同的列
 const columnList = ref([
-    { prop: "id", label: '任务编号' },
+    { prop: "num", label: '序号' },
     { prop: "suite_name", label: '任务名称' },
     // 其他列
 ])
@@ -69,7 +70,12 @@ const pageSize = ref(10)
 const total = ref(0)
 // 表格数据
 const tableData = ref([])
-
+const computedTable = computed(() => {
+    return tableData.value.map((item, index) => ({
+        ...item,
+        num: (currentPage.value - 1) * pageSize.value + index + 1 // 分页序号 
+    }))
+})
 // 加载页面数据
 const loadData = () => {
     let searchData = searchForm
@@ -122,6 +128,25 @@ const onExecuteTest = (index: number) => {
     excuteTest(tableData.value[index]).then((res: {}) => {
         console.log(res)
     })
+}
+
+const pushexcutehistory = (index: number) => {
+    onExecuteTest(index)
+    showModal("是否跳转到任务执行记录页面？", "warning", "").then((res) => {
+        router.push("/ApiSuiteHistory");
+    })
+}
+
+const showModal = (content, type, title) => {
+    return ElMessageBox.confirm(
+        content,
+        title,
+        {
+            confirmButtonText: '确认',
+            cancelButtonText: '取消',
+            type,
+        }
+    )
 }
 
 </script>

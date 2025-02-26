@@ -7,7 +7,7 @@
         </el-form-item>
       </el-col>
       <el-col :span="3">
-        <el-form-item prop="project_id" >
+        <el-form-item prop="project_id">
           <el-select v-model="apiInfo.project_id" placeholder="项目" @change="projectChange" clearable>
             <el-option v-for="project in projectList" :key="project.id" :label="project.project_name"
               :value="project.id" />
@@ -16,29 +16,29 @@
       </el-col>
       <el-col :span="3">
         <el-form-item prop="module_id">
-          <el-select v-model="apiInfo.module_id" placeholder="模块" clearable>
+          <el-select v-model="apiInfo.module_id" placeholder="模块" @click="getModule" clearable>
             <el-option v-for="module_info in moduleList" :key="module_info.id" :label="module_info.module_name"
               :value="module_info.id" /></el-select>
         </el-form-item>
       </el-col>
     </el-form-item>
-    <el-form-item >
+    <el-form-item>
       <el-col :span="3" class="mr-10">
         <el-form-item prop="is_login" class="w-[200px]" label="接口类型">
-          <el-select v-model="apiInfo.is_login"  clearable>
+          <el-select v-model="apiInfo.is_login" clearable>
             <el-option v-for="is_login in isLoginList" :key="is_login.logintype" :label="is_login.label"
               :value="is_login.logintype" /></el-select>
         </el-form-item>
       </el-col>
-      <el-col :span="5"  class="ml-10">
-      <el-form-item label="cookie变量名">
-        <el-input v-model="apiInfo.cookie_name" placeholder="输入变量名" clearable />
-      </el-form-item>
+      <el-col :span="5" class="ml-10">
+        <el-form-item label="cookie变量名">
+          <el-input v-model="apiInfo.cookie_name" placeholder="输入变量名" clearable />
+        </el-form-item>
       </el-col>
     </el-form-item>
     <el-form-item>
-      <el-col :span="3" >
-        <el-select v-model="apiInfo.request_method"  placeholder="请求方式" style="width: 115px">
+      <el-col :span="3">
+        <el-select v-model="apiInfo.request_method" placeholder="请求方式" style="width: 115px">
           <el-option label="POST" value="POST" />
           <el-option label="GET" value="GET" />
           <el-option label="DELETE" value="DELETE" />
@@ -140,7 +140,8 @@
             </el-table-column>
           </el-table>
           <el-input v-model="assertVars.value" placeholder="输入实际结果" style="width: 26.6%" />
-          <el-select v-model="assertVars.type" placeholder="请选择判定类型" style="width: 10%" @change="assertVars.target = ''">
+          <el-select v-model="assertVars.type" placeholder="请选择判定类型" style="width: 10%"
+            @change="assertVars.target = ''">
             <el-option v-for="(el, index) in typeList" :key="index" :label="el.label" :value="el.value"></el-option>
           </el-select>
           <el-input v-model="assertVars.target"
@@ -236,10 +237,13 @@ function getProjectList() {
   });
 }
 getProjectList();
+const getModule = () => {
+  getModuleList()
+}
 // 2. 加载模块
 import { queryByPage as ApiModuleQuery } from "../module/ApiModule.js"; // 不同页面不同的接口
 const moduleList = ref([{
-  id: 0,
+  id: "",
   module_name: '',
   module_desc: ''
 }]);
@@ -254,7 +258,17 @@ function getModuleList() { // 根据项目加载模块
 }
 const projectChange = (value: number) => { // 项目变动触发
   console.log(value)
-  getModuleList()
+  if (value) {
+    apiInfo.module_id = ''
+  } else {
+    moduleList.value = [{
+      id: null,
+      module_name: '',
+      module_desc: ''
+    }]
+    apiInfo.module_id = ''
+
+  }
 }
 
 // 3. 如果有id参数，说明是编辑，需要获取数据

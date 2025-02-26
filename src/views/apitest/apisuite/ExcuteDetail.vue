@@ -13,7 +13,7 @@
         <!-- END 搜索表单 -->
 
         <!-- 数据表格 -->
-        <el-table :data="tableData" style="width: 100%;" max-height="500">
+        <el-table :data="computedTable" style="width: 100%;" max-height="500">
             <!-- 数据列 -->
             <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
             <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
@@ -33,22 +33,23 @@
         <!-- 分页 -->
         <div class="demo-pagination-block">
             <div class="demonstration"></div>
-            <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
-                layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
-                @current-change="handleCurrentChange" />
+            <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize"
+                :page-sizes="[10, 20, 30, 50]" layout="total, sizes, prev, pager, next, jumper" :total="total"
+                @size-change="handleSizeChange" @current-change="handleCurrentChange" />
         </div>
         <!-- END 分页 -->
     </div>
 </template>
 <script lang="ts" setup>
-import { ref, reactive } from "vue";
+import { ref, reactive ,computed} from "vue";
 import { queryByPage as queryApiHistoryByPage } from "../collection/ApiHistory"; // 不同页面不同的接口 // 不同页面不同的接口
-import { useRouter,useRoute } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 const router = useRouter()
 const route = useRoute()
 const searchForm = reactive({ "collection_name": "" })
 // 表格列 - 不同页面不同的列
 const columnList = ref([
+    { prop: "num", label: '序号' },
     { prop: "collection_name", label: '用例名称' },
     { prop: "history_desc", label: '用例执行记录' },
     { prop: "create_time", label: '执行时间' }
@@ -61,6 +62,12 @@ const pageSize = ref(10)
 const total = ref(0)
 // 表格数据
 const tableData = ref([])// 关联的用例
+const computedTable = computed(() => {
+    return tableData.value.map((item, index) => ({
+        ...item,
+        num: (currentPage.value - 1) * pageSize.value + index + 1 // 分页序号 
+    }))
+})
 console.log(router);
 console.log(route);
 let suite_id = router.currentRoute.value.params.suiteId;
@@ -100,9 +107,7 @@ const showApiHistory = (index: number) => {
     // 注意： 这个地方的测试报告服务器地址，是需要根据后端服务器修改的，这里写死了，后面要改成配置文件
     var report_id = tableData.value[index]["history_detail"]
     console.log("ssssss");
-    
+
     window.open("http://192.168.119.129:5003/ApiHistory/" + report_id + ".html", '_blank');
 }
 </script>
-
-
